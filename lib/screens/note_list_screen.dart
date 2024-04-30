@@ -104,7 +104,65 @@ class NoteList extends StatelessWidget {
                       const EdgeInsets.symmetric(vertical: 3, horizontal: 10),
                   child: Card(
                     child: ListTile(
-                      onTap: () {},
+                      onTap: () {
+                        showDialog(
+                            context: context,
+                            builder: (context) {
+                              TextEditingController titleController =
+                                  TextEditingController(
+                                      text: document['title']);
+                              TextEditingController descriptionController =
+                                  TextEditingController(
+                                      text: document['description']);
+
+                              return AlertDialog(
+                                  title: const Text('Update Notes'),
+                                  content: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'title: ',
+                                        textAlign: TextAlign.start,
+                                      ),
+                                      TextField(
+                                        controller: titleController,
+                                      ),
+                                      const Padding(
+                                        padding: EdgeInsets.only(top: 20),
+                                        child: Text('description'),
+                                      ),
+                                      TextField(
+                                        controller: descriptionController,
+                                      ),
+                                    ],
+                                  ),
+                                  actions: [
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10),
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          Map<String, dynamic> updateNote = {};
+                                          updateNote['title'] =
+                                              titleController.text;
+                                          updateNote['description'] =
+                                              descriptionController.text;
+
+                                          FirebaseFirestore.instance
+                                              .collection('notes')
+                                              .doc(document.id)
+                                              .update(updateNote)
+                                              .whenComplete(() {
+                                            Navigator.of(context).pop();
+                                          });
+                                        },
+                                        child: const Text('Update'),
+                                      ),
+                                    ),
+                                  ]);
+                            });
+                      },
                       title: Text(document['title']),
                       subtitle: Text(document['description']),
                       trailing: InkWell(
