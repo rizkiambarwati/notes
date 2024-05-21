@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:notes/services/note_services.dart';
 import 'package:notes/widgets/note_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class NoteListScreen extends StatefulWidget {
   const NoteListScreen({super.key});
@@ -10,9 +11,6 @@ class NoteListScreen extends StatefulWidget {
 }
 
 class _NoteListScreenState extends State<NoteListScreen> {
-  // final TextEditingController _titleController = TextEditingController();
-  // final TextEditingController _descriptionController = TextEditingController();
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,63 +27,7 @@ class _NoteListScreenState extends State<NoteListScreen> {
             },
           );
         },
-        //       return AlertDialog(
-        //         content: Column(
-        //           crossAxisAlignment: CrossAxisAlignment.start,
-        //           children: [
-        //             const Text('Add'),
-        //             const Padding(
-        //               padding: EdgeInsets.only(top: 10),
-        //               child: Text('Title:', textAlign: TextAlign.start),
-        //             ),
-        //             TextField(controller: _titleController),
-        //             const Padding(
-        //               padding: EdgeInsets.only(top: 20),
-        //               child: Text('Description:', textAlign: TextAlign.start),
-        //             ),
-        //             TextField(controller: _descriptionController),
-        //           ],
-        //         ),
-        //         actions: [
-        //           Padding(
-        //             padding: const EdgeInsets.symmetric(horizontal: 10),
-        //             child: ElevatedButton(
-        //               onPressed: () {
-        //                 Navigator.of(context).pop();
-        //               },
-        //               child: const Text('Cancel'),
-        //             ),
-        //           ),
-        //           ElevatedButton(
-        //             onPressed: () {
-        //               NoteService.addNote(_titleController.text,
-        //                       _descriptionController.text)
-        //                   .whenComplete(() {
-        //                 _titleController.clear();
-        //                 _descriptionController.clear();
-        //                 Navigator.of(context).pop();
-        //               });
-        //               // Map<String, dynamic> notes = {};
-        //               // notes['title'] = _titleController.text;
-        //               // notes['description'] = _descriptionController.text;
-
-        //               // FirebaseFirestore.instance
-        //               //     .collection('notes')
-        //               //     .add(notes)
-        //               //     .whenComplete(() {
-        //               //   _titleController.clear();
-        //               //   _descriptionController.clear();
-        //               //   Navigator.of(context).pop();
-        //               // });
-        //             },
-        //             child: const Text('Save'),
-        //           )
-        //         ],
-        //       );
-        //     },
-        //   );
-        // },
-        tooltip: 'Add Notes',
+        tooltip: 'Add Note',
         child: const Icon(Icons.add),
       ),
     );
@@ -95,11 +37,21 @@ class _NoteListScreenState extends State<NoteListScreen> {
 class NoteList extends StatelessWidget {
   const NoteList({super.key});
 
+  Future<void> _launchMaps(double latitude, double longitude) async {
+    Uri googleUrl = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude');
+    try {
+      await launchUrl(googleUrl);
+    } catch (e) {
+      print('Could not open the map: $e');
+      // Optionally, show a message to the user
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
       stream: NoteService.getNoteList(),
-      //stream: FirebaseFirestore.instance.collection('notes').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Text('Error: ${snapshot.error}');
@@ -128,7 +80,10 @@ class NoteList extends StatelessWidget {
                         document.imageUrl != null &&
                                 Uri.parse(document.imageUrl!).isAbsolute
                             ? ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(16),
+                                  topRight: Radius.circular(16),
+                                ),
                                 child: Image.network(
                                   document.imageUrl!,
                                   fit: BoxFit.cover,
@@ -141,14 +96,55 @@ class NoteList extends StatelessWidget {
                         ListTile(
                           title: Text(document.title),
                           subtitle: Text(document.description),
-                          trailing: InkWell(
-                            onTap: () {
-                              NoteService.deleteNote(document);
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 10),
-                              child: Icon(Icons.delete),
-                            ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.map),
+                                onPressed: document.latitude != null &&
+                                        document.longitude != null
+                                    ? () {
+                                        _launchMaps(document.latitude!,
+                                            document.longitude!);
+                                      }
+                                    : null, // Disable the button if latitude or longitude is null
+                              ),
+                              InkWell(
+                                onTap: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        title: const Text('Konfirmasi Hapus'),
+                                        content: Text(
+                                            'Yakin ingin menghapus data \'${document.title}\' ?'),
+                                        actions: <Widget>[
+                                          TextButton(
+                                            child: const Text('Cancel'),
+                                            onPressed: () {
+                                              Navigator.of(context).pop();
+                                            },
+                                          ),
+                                          TextButton(
+                                            child: const Text('Hapus'),
+                                            onPressed: () {
+                                              NoteService.deleteNote(document)
+                                                  .whenComplete(() =>
+                                                      Navigator.of(context)
+                                                          .pop());
+                                            },
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 10),
+                                  child: Icon(Icons.delete),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
