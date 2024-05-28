@@ -94,7 +94,6 @@ class _NoteDialogState extends State<NoteDialog> {
           ),
           Text('LAT: ${_currentPosition?.latitude ?? ""}'),
           Text('LNG: ${_currentPosition?.longitude ?? ""}'),
-          // Text('ADDRESS: ${_currentAddress ?? ""}'),
         ],
       ),
       actions: [
@@ -111,7 +110,7 @@ class _NoteDialogState extends State<NoteDialog> {
           onPressed: () async {
             String? imageUrl;
             if (_imageFile != null) {
-              imageUrl = await NoteService.uploadImage(_imageFile!);
+              imageUrl = await NoteService.uploadImage(_imageFile! as XFile);
             } else {
               imageUrl = widget.note?.imageUrl;
             }
